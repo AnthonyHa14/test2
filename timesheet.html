@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timesheet</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa;
+      display: flex; flex-direction: column;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      display: flex; align-items: center;
+      padding: 0 28px; height: 52px;
+      background: #fff; border-bottom: 1px solid #eaedf3;
+      flex-shrink: 0; z-index: 10;
+    }
+    .nav-links { display: flex; align-items: center; gap: 2px; flex: 1; list-style: none; }
+    .nav-links a {
+      color: #555e7a; text-decoration: none; font-size: 0.82rem;
+      padding: 6px 10px; border-radius: 6px; white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+    .nav-links a:hover  { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; font-weight: 600; background: #f0f1f8; }
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      background: #e8eaf6; border: 1.5px solid #c5cae9;
+      display: flex; align-items: center; justify-content: center; color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+    .menu-btn {
+      background: none; border: none; cursor: pointer; padding: 4px;
+      color: #8892aa; display: flex; align-items: center;
+      border-radius: 4px; transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .menu-wrap { position: relative; }
+    .nav-dropdown { position: absolute; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid #eaedf3; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.13); min-width: 160px; z-index: 200; display: none; overflow: hidden; }
+    .nav-dropdown.open { display: block; }
+    .nav-dropdown a { display: flex; align-items: center; gap: 9px; padding: 10px 16px; font-size: 0.84rem; color: #374151; text-decoration: none; cursor: pointer; transition: background 0.12s; }
+    .nav-dropdown a:hover { background: #f9fafb; }
+    .nav-dropdown a svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .dd-divider { height: 1px; background: #f0f2f7; margin: 4px 0; }
+    .dd-logout { color: #ef4444 !important; }
+    .dd-logout:hover { background: #fef2f2 !important; }
+
+    /* ── Page ── */
+    .page { flex: 1; padding: 28px 32px; max-width: 960px; width: 100%; margin: 0 auto; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Page header ── */
+    .page-header {
+      display: flex; align-items: center; justify-content: space-between;
+      background: #fff; border-radius: 14px;
+      padding: 18px 22px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .page-header-left { display: flex; align-items: center; gap: 14px; }
+    .icon-box {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: #0d9488;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3); flex-shrink: 0;
+    }
+    .icon-box svg { width: 22px; height: 22px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .page-header-title h1 { font-size: 1.18rem; font-weight: 700; color: #1a2044; }
+    .page-header-title p  { font-size: 0.8rem; color: #8892aa; margin-top: 2px; }
+
+    /* Period navigator */
+    .period-nav { display: flex; align-items: center; gap: 8px; }
+    .period-arrow {
+      width: 28px; height: 28px; border-radius: 7px;
+      border: 1px solid #e5e7eb; background: #fff;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #6b7280;
+      transition: background 0.12s, color 0.12s;
+    }
+    .period-arrow:hover { background: #f3f4f6; color: #1a2044; }
+    .period-arrow svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .period-label { font-size: 0.8rem; font-weight: 600; color: #374151; min-width: 210px; text-align: center; }
+
+    /* ── Stats row ── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px;
+      margin-bottom: 20px;
+      animation: fadeUp 0.4s 0.05s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .stat-card {
+      background: #fff; border-radius: 12px; padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+      display: flex; align-items: center; gap: 14px;
+    }
+    .stat-icon {
+      width: 38px; height: 38px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
+    .stat-icon svg { width: 18px; height: 18px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .stat-val { font-size: 1.3rem; font-weight: 700; color: #1a2044; }
+    .stat-lbl { font-size: 0.73rem; color: #8892aa; margin-top: 1px; }
+
+    /* ── Warning banner ── */
+    .warn-banner {
+      display: none; align-items: center; gap: 10px;
+      background: #fffbeb; border: 1px solid #fcd34d;
+      border-radius: 10px; padding: 11px 16px;
+      margin-bottom: 16px;
+      font-size: 0.82rem; color: #92400e;
+    }
+    .warn-banner.show { display: flex; }
+    .warn-banner svg { width: 17px; height: 17px; stroke: #d97706; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex-shrink: 0; }
+
+    /* ── Timesheet card ── */
+    .ts-card {
+      background: #fff; border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      overflow: hidden;
+      animation: fadeUp 0.4s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+      margin-bottom: 20px;
+    }
+    .ts-card-head {
+      padding: 14px 22px;
+      border-bottom: 1px solid #f3f4f6;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .ts-card-head h2  { font-size: 0.92rem; font-weight: 700; color: #1a2044; }
+    .ts-card-head span { font-size: 0.75rem; color: #9ca3af; }
+
+    /* Table */
+    .ts-table-wrap { overflow-x: auto; }
+    .ts-table { width: 100%; border-collapse: collapse; min-width: 640px; }
+    .ts-table th {
+      padding: 10px 18px; text-align: left;
+      font-size: 0.72rem; font-weight: 600; color: #6b7280;
+      text-transform: uppercase; letter-spacing: 0.05em;
+      background: #f9fafb; border-bottom: 1px solid #f3f4f6;
+    }
+    .ts-table td {
+      padding: 13px 18px; border-bottom: 1px solid #f3f4f6;
+      font-size: 0.85rem; color: #374151; vertical-align: middle;
+    }
+    .ts-table tr:last-child td { border-bottom: none; }
+    .ts-table tr:not(.editing):hover td { background: #fafafa; }
+    .ts-table tr.editing td { background: #f0fafa; }
+
+    /* Employee cell */
+    .emp-cell { display: flex; align-items: center; gap: 10px; }
+    .emp-avatar {
+      width: 32px; height: 32px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.74rem; font-weight: 700; color: #fff; flex-shrink: 0;
+    }
+    .emp-name { font-weight: 600; color: #1a2044; font-size: 0.85rem; }
+    .role-badge {
+      font-size: 0.65rem; font-weight: 600; padding: 2px 7px;
+      border-radius: 20px; display: inline-block; margin-top: 2px;
+    }
+    .role-fulltime { background: #dbeafe; color: #1d4ed8; }
+    .role-parttime { background: #fef3c7; color: #92400e; }
+    .role-vacation { background: #fee2e2; color: #b91c1c; }
+
+    /* Hours inputs */
+    .hours-input {
+      width: 86px; padding: 6px 10px;
+      border: 1px solid #0d9488; border-radius: 7px;
+      font-size: 0.85rem; color: #374151; font-family: inherit; outline: none;
+    }
+    .hours-input:focus { box-shadow: 0 0 0 3px rgba(13,148,136,0.15); }
+    .total-cell { font-weight: 600; }
+
+    /* Status badges */
+    .status-badge {
+      font-size: 0.7rem; font-weight: 600; padding: 3px 10px;
+      border-radius: 20px; white-space: nowrap; display: inline-block;
+    }
+    .s-pending  { background: #eff6ff; color: #3b82f6; }
+    .s-modified { background: #fff7ed; color: #ea580c; }
+    .s-missing  { background: #fef2f2; color: #dc2626; }
+    .s-vacation { background: #f3f4f6; color: #6b7280; }
+    .s-approved { background: #dcfce7; color: #15803d; }
+
+    /* Action buttons */
+    .action-btn {
+      width: 30px; height: 30px; border-radius: 7px;
+      border: 1px solid #e5e7eb; background: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      cursor: pointer; color: #6b7280;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .action-btn:hover  { background: #f0f1f8; color: #1a2044; }
+    .action-btn.save   { border-color: #0d9488; color: #0d9488; }
+    .action-btn.save:hover   { background: #0d9488; color: #fff; }
+    .action-btn.cancel:hover { background: #fee2e2; color: #dc2626; border-color: #fca5a5; }
+    .action-btn svg { width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .actions-cell { display: flex; gap: 6px; align-items: center; }
+
+    /* ── Footer ── */
+    .ts-footer {
+      display: flex; align-items: center; justify-content: flex-end;
+      animation: fadeUp 0.4s 0.15s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .btn-approve {
+      padding: 11px 32px; border: none; border-radius: 50px;
+      background: #0d9488; color: #fff;
+      font-size: 0.92rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+      transition: filter 0.15s, transform 0.15s;
+    }
+    .btn-approve:hover   { filter: brightness(1.07); transform: translateY(-1px); }
+    .btn-approve:active  { transform: translateY(0); }
+    .btn-approve:disabled { opacity: 0.5; cursor: not-allowed; transform: none; filter: none; }
+
+    /* ── Overlays ── */
+    .overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,20,50,0.45); backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100; opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .overlay.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: #fff; border-radius: 16px; max-width: 420px; width: calc(100% - 40px);
+      box-shadow: 0 24px 60px rgba(0,0,0,0.2); padding: 32px;
+      transform: translateY(14px);
+      transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+    }
+    .overlay.open .modal-box { transform: translateY(0); }
+
+    .modal-icon {
+      width: 52px; height: 52px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
+    }
+    .modal-icon svg { width: 26px; height: 26px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .modal-title { font-size: 1.1rem; font-weight: 700; color: #111827; text-align: center; margin-bottom: 6px; }
+    .modal-sub   { font-size: 0.83rem; color: #6b7280; text-align: center; margin-bottom: 20px; line-height: 1.55; }
+
+    .modal-summary { background: #f9fafb; border-radius: 10px; padding: 14px 18px; margin-bottom: 22px; }
+    .sum-row {
+      display: flex; justify-content: space-between; align-items: center;
+      font-size: 0.82rem; padding: 5px 0;
+    }
+    .sum-row:not(:last-child) { border-bottom: 1px solid #f3f4f6; }
+    .sum-row .lbl { color: #6b7280; }
+    .sum-row .val { font-weight: 600; color: #1a2044; }
+
+    .modal-actions { display: flex; gap: 10px; }
+    .btn-back {
+      flex: 1; padding: 11px; border: 1px solid #e5e7eb;
+      border-radius: 50px; background: #fff; color: #6b7280;
+      font-size: 0.88rem; font-weight: 500; cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-back:hover { background: #f9fafb; }
+    .btn-confirm {
+      flex: 2; padding: 11px; border: none;
+      border-radius: 50px; background: #0d9488; color: #fff;
+      font-size: 0.88rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+      transition: filter 0.15s;
+    }
+    .btn-confirm:hover { filter: brightness(1.07); }
+
+    /* Success modal */
+    .modal-box.center { text-align: center; }
+    .success-circle {
+      width: 64px; height: 64px; border-radius: 50%;
+      background: #dcfce7; display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 18px;
+    }
+    .success-circle svg { width: 30px; height: 30px; stroke: #16a34a; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+    .ref-tag {
+      font-size: 0.75rem; color: #9ca3af;
+      background: #f9fafb; border-radius: 7px; padding: 6px 14px;
+      display: inline-block; margin-bottom: 22px; font-family: monospace; letter-spacing: 0.05em;
+    }
+    .btn-done {
+      display: block; width: 160px; margin: 0 auto;
+      padding: 11px; border: none; border-radius: 50px;
+      background: #0d9488; color: #fff;
+      font-size: 0.92rem; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(13,148,136,0.3);
+      transition: filter 0.15s;
+    }
+    .btn-done:hover { filter: brightness(1.07); }
+  </style>
+</head>
+<body>
+
+<!-- Navbar -->
+<nav>
+  <ul class="nav-links">
+    <li><a href="home.html">Home</a></li>
+    <li><a href="schedule.html">Schedule</a></li>
+    <li><a href="availability.html">Availability</a></li>
+    <li><a href="timesheet.html" class="active">Timesheet</a></li>
+    <li><a href="checklist.html">Checklist</a></li>
+    <li><a href="notifications.html">Notifications</a></li>
+    <li><a href="incident.html">Incident Form</a></li>
+  </ul>
+  <div class="nav-user">
+    <div class="avatar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+      </svg>
+    </div>
+    <span class="user-name" id="displayName">User</span>
+    <div class="menu-wrap" id="menuWrap">
+      <button class="menu-btn" onclick="toggleMenu()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+          <line x1="4" y1="6" x2="20" y2="6"/>
+          <line x1="4" y1="12" x2="20" y2="12"/>
+          <line x1="4" y1="18" x2="20" y2="18"/>
+        </svg>
+      </button>
+      <div class="nav-dropdown" id="navDropdown">
+        <a class="dd-logout" onclick="logout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="page">
+
+  <!-- Page header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <div class="icon-box">
+        <svg viewBox="0 0 24 24">
+          <rect x="3" y="4" width="18" height="18" rx="2"/>
+          <line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/>
+          <line x1="3" y1="10" x2="21" y2="10"/>
+          <line x1="8" y1="14" x2="8.01" y2="14"/><line x1="12" y1="14" x2="12.01" y2="14"/><line x1="16" y1="14" x2="16.01" y2="14"/>
+          <line x1="8" y1="18" x2="8.01" y2="18"/><line x1="12" y1="18" x2="12.01" y2="18"/>
+        </svg>
+      </div>
+      <div class="page-header-title">
+        <h1>Timesheet</h1>
+        <p>Review and approve bi-weekly employee hours</p>
+      </div>
+    </div>
+    <div class="period-nav">
+      <button class="period-arrow" onclick="changePeriod(-1)">
+        <svg viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+      </button>
+      <span class="period-label" id="periodLabel"></span>
+      <button class="period-arrow" onclick="changePeriod(1)">
+        <svg viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#eff6ff;">
+        <svg viewBox="0 0 24 24" stroke="#3b82f6">
+          <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-val" id="statEmp">—</div>
+        <div class="stat-lbl">Employees</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#f0fdf4;">
+        <svg viewBox="0 0 24 24" stroke="#22c55e">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-val" id="statRegH">—</div>
+        <div class="stat-lbl">Regular Hours</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon" style="background:#fff7ed;">
+        <svg viewBox="0 0 24 24" stroke="#f97316">
+          <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+        </svg>
+      </div>
+      <div>
+        <div class="stat-val" id="statOTH">—</div>
+        <div class="stat-lbl">Overtime Hours</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Warning banner -->
+  <div class="warn-banner" id="warnBanner">
+    <svg viewBox="0 0 24 24">
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+      <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+    </svg>
+    <span id="warnMsg"></span>
+  </div>
+
+  <!-- Table card -->
+  <div class="ts-card">
+    <div class="ts-card-head">
+      <h2>Employee Hours</h2>
+      <span id="periodSub"></span>
+    </div>
+    <div class="ts-table-wrap">
+      <table class="ts-table">
+        <thead>
+          <tr>
+            <th>Employee</th>
+            <th>Regular Hrs</th>
+            <th>Overtime Hrs</th>
+            <th>Total Hrs</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="tsBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="ts-footer">
+    <button class="btn-approve" id="btnApprove" onclick="openConfirm()">Approve &amp; Submit to Payroll</button>
+  </div>
+
+</div>
+
+<!-- Confirm modal -->
+<div class="overlay" id="confirmOverlay">
+  <div class="modal-box">
+    <div class="modal-icon" style="background:#eff6ff;">
+      <svg viewBox="0 0 24 24" stroke="#3b82f6">
+        <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+        <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+      </svg>
+    </div>
+    <div class="modal-title">Submit to Payroll?</div>
+    <div class="modal-sub">You are about to approve and submit this timesheet. This action cannot be undone.</div>
+    <div class="modal-summary" id="confirmSummary"></div>
+    <div class="modal-actions">
+      <button class="btn-back" onclick="closeConfirm()">Go Back</button>
+      <button class="btn-confirm" onclick="submitToPayroll()">Submit to Payroll</button>
+    </div>
+  </div>
+</div>
+
+<!-- Success modal -->
+<div class="overlay" id="successOverlay">
+  <div class="modal-box center">
+    <div class="success-circle">
+      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+    </div>
+    <div class="modal-title">Submitted to Payroll!</div>
+    <div class="modal-sub" style="margin-bottom:10px;">The timesheet has been approved and successfully sent to payroll.</div>
+    <div class="ref-tag" id="refTag">REF: —</div>
+    <button class="btn-done" onclick="closeSuccess()">Done</button>
+  </div>
+</div>
+
+<script>
+  if (!sessionStorage.getItem('loggedIn')) { window.location.replace('login.html'); }
+  const stored = sessionStorage.getItem('userName');
+  if (stored) document.getElementById('displayName').textContent = stored;
+  function toggleMenu() { document.getElementById('navDropdown').classList.toggle('open'); }
+  function logout() { sessionStorage.clear(); window.location.replace('login.html'); }
+  document.addEventListener('click', e => {
+    const w = document.getElementById('menuWrap');
+    if (w && !w.contains(e.target)) document.getElementById('navDropdown').classList.remove('open');
+  });
+
+  // ── Data ──
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  const EMPLOYEES = [
+    { id:1, name:'Sarah Johnson',  role:'Full-time', color:'#3b82f6' },
+    { id:2, name:'Michael Chen',   role:'Part-time', color:'#f59e0b' },
+    { id:3, name:'Emily Davis',    role:'Full-time', color:'#10b981' },
+    { id:4, name:'James Wilson',   role:'Part-time', color:'#8b5cf6' },
+    { id:5, name:'Aiko Tanaka',    role:'Vacation',  color:'#ef4444' },
+  ];
+
+  // Default hours per employee (reset each period navigation)
+  const DEFAULT_HOURS = [
+    { regH: 80,  otH: 4.5 },
+    { regH: 38,  otH: 0   },
+    { regH: 76,  otH: 2   },
+    { regH: 0,   otH: 0   }, // missing — James hasn't clocked in
+    { regH: 0,   otH: 0   }, // vacation
+  ];
+
+  // Bi-weekly anchor: March 23, 2026 (Monday)
+  const ANCHOR = new Date(2026, 2, 23);
+  let periodOffset = 0;
+  let approved = false;
+
+  // Row state
+  let rows = [];
+
+  function resetRows() {
+    rows = DEFAULT_HOURS.map(h => ({ regH: h.regH, otH: h.otH, modified: false, editing: false }));
+  }
+
+  // ── Period helpers ──
+  function getPeriodStart(offset) {
+    const d = new Date(ANCHOR);
+    d.setDate(d.getDate() + offset * 14);
+    return d;
+  }
+
+  function fmtDate(d) {
+    return `${MONTH_ABBR[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  }
+
+  function fmtH(h) {
+    if (h === 0) return '0h';
+    const whole = Math.floor(h);
+    const frac  = h - whole;
+    return frac ? `${whole}h ${Math.round(frac * 60)}m` : `${whole}h`;
+  }
+
+  function updatePeriodLabel() {
+    const ps = getPeriodStart(periodOffset);
+    const pe = new Date(ps); pe.setDate(pe.getDate() + 13);
+    const label = `${fmtDate(ps)} – ${fmtDate(pe)}`;
+    document.getElementById('periodLabel').textContent = label;
+    document.getElementById('periodSub').textContent   = label;
+  }
+
+  function changePeriod(dir) {
+    periodOffset += dir;
+    approved = false;
+    resetRows();
+    updatePeriodLabel();
+    buildTable();
+  }
+
+  // ── Build table ──
+  function buildTable() {
+    const tbody = document.getElementById('tsBody');
+    tbody.innerHTML = '';
+
+    let totalReg = 0, totalOT = 0, missing = 0;
+
+    rows.forEach((row, idx) => {
+      const emp    = EMPLOYEES[idx];
+      const isVac  = emp.role === 'Vacation';
+      const total  = row.regH + row.otH;
+      const isMiss = !isVac && row.regH === 0 && !approved;
+      if (isMiss) missing++;
+      if (!isVac) { totalReg += row.regH; totalOT += row.otH; }
+
+      const roleClass = emp.role === 'Full-time' ? 'role-fulltime'
+                      : emp.role === 'Part-time' ? 'role-parttime'
+                      : 'role-vacation';
+
+      let sCls, sLbl;
+      if (approved)        { sCls = 's-approved'; sLbl = 'Approved'; }
+      else if (isVac)      { sCls = 's-vacation'; sLbl = 'On Vacation'; }
+      else if (isMiss)     { sCls = 's-missing';  sLbl = 'Missing'; }
+      else if (row.modified){ sCls = 's-modified'; sLbl = 'Modified'; }
+      else                 { sCls = 's-pending';  sLbl = 'Pending'; }
+
+      const initials = emp.name.split(' ').map(n => n[0]).join('');
+      const tr = document.createElement('tr');
+      if (row.editing) tr.classList.add('editing');
+
+      const empCell = `
+        <div class="emp-cell">
+          <div class="emp-avatar" style="background:${emp.color}">${initials}</div>
+          <div>
+            <div class="emp-name">${emp.name}</div>
+            <span class="role-badge ${roleClass}">${emp.role}</span>
+          </div>
+        </div>`;
+
+      if (row.editing) {
+        tr.innerHTML = `
+          <td>${empCell}</td>
+          <td><input class="hours-input" type="number" id="eR${idx}" min="0" max="999" step="0.5" value="${row.regH}" /></td>
+          <td><input class="hours-input" type="number" id="eO${idx}" min="0" max="999" step="0.5" value="${row.otH}"  /></td>
+          <td class="total-cell" id="eT${idx}">${fmtH(total)}</td>
+          <td><span class="status-badge ${sCls}">${sLbl}</span></td>
+          <td>
+            <div class="actions-cell">
+              <button class="action-btn save"   title="Save"   onclick="saveEdit(${idx})">
+                <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+              </button>
+              <button class="action-btn cancel" title="Cancel" onclick="cancelEdit(${idx})">
+                <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+          </td>`;
+
+        // Live total preview
+        setTimeout(() => {
+          const rIn = document.getElementById(`eR${idx}`);
+          const oIn = document.getElementById(`eO${idx}`);
+          const tEl = document.getElementById(`eT${idx}`);
+          if (rIn && oIn && tEl) {
+            const upd = () => {
+              tEl.textContent = fmtH((parseFloat(rIn.value) || 0) + (parseFloat(oIn.value) || 0));
+            };
+            rIn.addEventListener('input', upd);
+            oIn.addEventListener('input', upd);
+          }
+        }, 0);
+
+      } else {
+        const editBtn = (!isVac && !approved) ? `
+          <button class="action-btn" title="Edit hours" onclick="startEdit(${idx})">
+            <svg viewBox="0 0 24 24">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+          </button>` : '';
+
+        tr.innerHTML = `
+          <td>${empCell}</td>
+          <td>${isVac ? '—' : fmtH(row.regH)}</td>
+          <td>${isVac ? '—' : fmtH(row.otH)}</td>
+          <td class="total-cell">${isVac ? '—' : fmtH(total)}</td>
+          <td><span class="status-badge ${sCls}">${sLbl}</span></td>
+          <td><div class="actions-cell">${editBtn}</div></td>`;
+      }
+
+      tbody.appendChild(tr);
+    });
+
+    // Stats
+    document.getElementById('statEmp').textContent  = EMPLOYEES.length;
+    document.getElementById('statRegH').textContent = fmtH(totalReg);
+    document.getElementById('statOTH').textContent  = fmtH(totalOT);
+
+    // Warning
+    const banner = document.getElementById('warnBanner');
+    if (missing > 0) {
+      document.getElementById('warnMsg').textContent =
+        `${missing} employee${missing > 1 ? 's have' : ' has'} missing hours. Please review before approving.`;
+      banner.classList.add('show');
+    } else {
+      banner.classList.remove('show');
+    }
+
+    // Approve button
+    document.getElementById('btnApprove').disabled = approved;
+  }
+
+  // ── Edit ──
+  function startEdit(idx) {
+    rows[idx].editing = true;
+    buildTable();
+  }
+
+  function saveEdit(idx) {
+    const regVal = parseFloat(document.getElementById(`eR${idx}`).value) || 0;
+    const otVal  = parseFloat(document.getElementById(`eO${idx}`).value) || 0;
+    rows[idx].regH    = Math.max(0, regVal);
+    rows[idx].otH     = Math.max(0, otVal);
+    rows[idx].modified = true;
+    rows[idx].editing  = false;
+    buildTable();
+  }
+
+  function cancelEdit(idx) {
+    rows[idx].editing = false;
+    buildTable();
+  }
+
+  // ── Approve flow ──
+
+  // Timesheet.verifyTimesheetDetails — summarise the timesheet before submitting
+  function verifyTimesheetDetails() {
+    const ps = getPeriodStart(periodOffset);
+    const pe = new Date(ps); pe.setDate(pe.getDate() + 13);
+    let totalReg = 0, totalOT = 0, empCount = 0;
+    rows.forEach((row, i) => {
+      if (EMPLOYEES[i].role !== 'Vacation') {
+        totalReg += row.regH; totalOT += row.otH; empCount++;
+      }
+    });
+    return { ps, pe, totalReg, totalOT, empCount, totalHoursWorked: totalReg + totalOT };
+  }
+
+  function openConfirm() {
+    const details = verifyTimesheetDetails();
+
+    // Timesheet.submitToPayroll — guard: totalHoursWorked must be > 0
+    if (details.totalHoursWorked === 0) {
+      document.getElementById('warnMsg').textContent =
+        'Cannot approve: no hours have been entered for this pay period. Please update hours before approving.';
+      document.getElementById('warnBanner').classList.add('show');
+      return;
+    }
+
+    document.getElementById('confirmSummary').innerHTML = `
+      <div class="sum-row"><span class="lbl">Pay Period</span><span class="val">${fmtDate(details.ps)} – ${fmtDate(details.pe)}</span></div>
+      <div class="sum-row"><span class="lbl">Employees</span><span class="val">${details.empCount}</span></div>
+      <div class="sum-row"><span class="lbl">Regular Hours</span><span class="val">${fmtH(details.totalReg)}</span></div>
+      <div class="sum-row"><span class="lbl">Overtime Hours</span><span class="val">${fmtH(details.totalOT)}</span></div>
+      <div class="sum-row"><span class="lbl">Total Hours</span><span class="val">${fmtH(details.totalHoursWorked)}</span></div>
+    `;
+    document.getElementById('confirmOverlay').classList.add('open');
+  }
+
+  function closeConfirm() {
+    document.getElementById('confirmOverlay').classList.remove('open');
+  }
+
+  function submitToPayroll() {
+    closeConfirm();
+    approved = true;
+    const ref = 'PAY-' + Date.now().toString(36).toUpperCase().slice(-8);
+    document.getElementById('refTag').textContent = `REF: ${ref}`;
+    document.getElementById('successOverlay').classList.add('open');
+    buildTable();
+  }
+
+  function closeSuccess() {
+    document.getElementById('successOverlay').classList.remove('open');
+  }
+
+  // ── Bootstrap ──
+  resetRows();
+  updatePeriodLabel();
+  buildTable();
+</script>
+
+</body>
+</html>

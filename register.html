@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Register</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #1a2044;
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      height: 52px;
+      background: #111830;
+      flex-shrink: 0;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      background: #fff;
+      border-radius: 8px;
+      margin-right: 24px;
+      flex-shrink: 0;
+    }
+
+    .nav-logo svg { width: 20px; height: 20px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: rgba(255,255,255,0.7);
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-links a:hover { color: #fff; background: rgba(255,255,255,0.08); }
+
+    .nav-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+
+    .nav-btn {
+      padding: 6px 16px;
+      border-radius: 6px;
+      font-size: 0.82rem;
+      font-weight: 500;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.15s;
+    }
+
+    .nav-btn-outline {
+      border: 1px solid rgba(255,255,255,0.3);
+      background: transparent;
+      color: #fff;
+    }
+    .nav-btn-outline:hover { border-color: rgba(255,255,255,0.6); background: rgba(255,255,255,0.06); }
+
+    .nav-btn-solid { border: none; background: #1e2a4a; color: #fff; }
+    .nav-btn-solid:hover { background: #263460; }
+
+    /* ── Background scene ── */
+    .scene {
+      position: relative;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    /* Golden decorative circle */
+    .deco {
+      position: absolute;
+      left: -80px;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 420px;
+      height: 420px;
+      pointer-events: none;
+    }
+
+    .deco-ring {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid rgba(212,175,55,0.25);
+    }
+    .deco-ring:nth-child(2) { inset: 30px; border-color: rgba(212,175,55,0.3); }
+    .deco-ring:nth-child(3) { inset: 60px; border-color: rgba(212,175,55,0.2); }
+
+    .petals { position: absolute; inset: 60px; }
+
+    .petal {
+      position: absolute;
+      width: 90px;
+      height: 130px;
+      border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+      background: linear-gradient(160deg, #c9a227 0%, #8b6914 60%, #5a430d 100%);
+      opacity: 0.75;
+      transform-origin: center bottom;
+    }
+
+    .petal:nth-child(1) { left:50%; top:50%; transform: translateX(-50%) rotate(0deg)   translateY(-100%); }
+    .petal:nth-child(2) { left:50%; top:50%; transform: translateX(-50%) rotate(60deg)  translateY(-100%); }
+    .petal:nth-child(3) { left:50%; top:50%; transform: translateX(-50%) rotate(120deg) translateY(-100%); }
+    .petal:nth-child(4) { left:50%; top:50%; transform: translateX(-50%) rotate(180deg) translateY(-100%); }
+    .petal:nth-child(5) { left:50%; top:50%; transform: translateX(-50%) rotate(240deg) translateY(-100%); }
+    .petal:nth-child(6) { left:50%; top:50%; transform: translateX(-50%) rotate(300deg) translateY(-100%); }
+
+    .petal::after {
+      content: '';
+      position: absolute;
+      left: 50%; top: 10%;
+      width: 1px; height: 80%;
+      background: rgba(0,0,0,0.25);
+      transform: translateX(-50%);
+    }
+
+    .deco-center {
+      position: absolute;
+      left: 50%; top: 50%;
+      transform: translate(-50%, -50%);
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: radial-gradient(circle, #e8c84a, #8b6914);
+    }
+
+    /* Brand text */
+    .brand-text {
+      position: absolute;
+      right: 12%; top: 50%;
+      transform: translateY(-50%);
+      text-align: left;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .brand-text .line1,
+    .brand-text .line2 {
+      font-size: 3.8rem;
+      font-weight: 800;
+      letter-spacing: 0.1em;
+      color: #c9a227;
+      opacity: 0.35;
+      line-height: 1;
+    }
+
+    /* Small diamond accent (bottom right) */
+    .diamond {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      width: 22px;
+      height: 22px;
+      background: rgba(180,160,220,0.35);
+      transform: rotate(45deg);
+      border-radius: 3px;
+    }
+
+    /* ── Card ── */
+    .card {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 360px;
+      padding: 32px 32px 28px;
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.35), 0 4px 16px rgba(0,0,0,0.2);
+      animation: fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .card h1 {
+      font-size: 1.45rem;
+      font-weight: 700;
+      color: #1a2044;
+      text-align: center;
+      margin-bottom: 20px;
+      letter-spacing: -0.01em;
+    }
+
+    /* Inputs + Select */
+    input, select {
+      display: block;
+      width: 100%;
+      padding: 10px 14px;
+      border: 1px solid #d8dce8;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      color: #333;
+      background: #fff;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 10px;
+    }
+
+    input::placeholder { color: #aab0c4; }
+
+    select { cursor: pointer; appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 34px; }
+    select:invalid, select option[value=""] { color: #aab0c4; }
+    select option:not([value=""]) { color: #333; }
+
+    input:focus, select:focus {
+      border-color: #2dd4bf;
+      box-shadow: 0 0 0 3px rgba(45,212,191,0.15);
+    }
+
+    /* Validation states */
+    input.error, select.error { border-color: #f87171; box-shadow: 0 0 0 3px rgba(248,113,113,0.15); }
+    input.ok    { border-color: #34d399; }
+
+    .error-msg {
+      display: none;
+      font-size: 0.73rem;
+      color: #e53e3e;
+      margin-top: -6px;
+      margin-bottom: 8px;
+      padding-left: 2px;
+    }
+
+    /* Submit button */
+    .btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 50px;
+      background: linear-gradient(90deg, #2dd4bf 0%, #06b6d4 100%);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      letter-spacing: 0.01em;
+      transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 16px rgba(6,182,212,0.4);
+      margin-top: 6px;
+      margin-bottom: 18px;
+    }
+
+    .btn:hover {
+      filter: brightness(1.06);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 22px rgba(6,182,212,0.5);
+    }
+
+    .btn:active { transform: translateY(0); filter: brightness(0.97); }
+    .btn:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
+
+    /* Footer */
+    .card-footer {
+      text-align: center;
+      font-size: 0.82rem;
+      color: #8892aa;
+    }
+
+    .card-footer a {
+      color: #2563eb;
+      text-decoration: none;
+      font-weight: 500;
+    }
+
+    .card-footer a:hover { text-decoration: underline; }
+
+    /* Add second address toggle */
+    .btn-add-addr {
+      background: none; border: none;
+      color: #2563eb; font-size: 0.78rem; font-weight: 500;
+      cursor: pointer; padding: 0 0 10px 2px;
+      display: inline-block; transition: color 0.15s;
+    }
+    .btn-add-addr:hover { color: #1d4ed8; text-decoration: underline; }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <ul class="nav-links">
+      <li><a href="#">Schedule</a></li>
+      <li><a href="availability.html">Availability</a></li>
+      <li><a href="#">Timesheet</a></li>
+      <li><a href="#">Checklist</a></li>
+      <li><a href="#">Notifications</a></li>
+      <li><a href="#">Incident Form</a></li>
+    </ul>
+
+    <div class="nav-actions">
+      <a href="login.html" class="nav-btn nav-btn-outline">Sign In</a>
+      <a href="register.html" class="nav-btn nav-btn-solid">Register</a>
+    </div>
+  </nav>
+
+  <!-- Scene -->
+  <div class="scene">
+
+    <div class="deco">
+      <div class="deco-ring"></div>
+      <div class="deco-ring"></div>
+      <div class="deco-ring"></div>
+      <div class="petals">
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+        <div class="petal"></div>
+      </div>
+      <div class="deco-center"></div>
+    </div>
+
+    <div class="brand-text">
+      <div class="line1">SUSHI</div>
+      <div class="line2">AKAYA</div>
+    </div>
+
+    <div class="diamond"></div>
+
+    <!-- Register card -->
+    <div class="card">
+      <h1>Register</h1>
+
+      <form id="regForm" onsubmit="handleSubmit(event)" novalidate>
+
+        <input type="text"     id="empId"    placeholder="Employee ID"       autocomplete="off"              required />
+        <input type="text"     id="fullName" placeholder="Full Name"          autocomplete="name"             required />
+        <input type="email"    id="email"    placeholder="Work Email"         autocomplete="email"            required />
+        <span class="error-msg" id="emailFmtErr">Enter a valid email address (must contain @ and .).</span>
+        <input type="password" id="password" placeholder="Your password"      autocomplete="new-password"     required />
+        <span class="error-msg" id="pwSpecial">Password must contain at least one special character (!@#$%^&* …).</span>
+        <input type="password" id="confirm"  placeholder="Confirm password"   autocomplete="new-password"     required />
+        <span class="error-msg" id="pwMatch">Passwords do not match.</span>
+
+        <input type="text" id="address1" placeholder="Address Line 1" autocomplete="address-line1" required />
+        <span class="error-msg" id="addr1Err">Address is required.</span>
+
+        <div id="addr2Wrap" style="display:none;">
+          <input type="text" id="address2" placeholder="Address Line 2 (optional)" autocomplete="address-line2" />
+        </div>
+        <button type="button" id="addAddr2Btn" class="btn-add-addr" onclick="toggleAddr2()">+ Add second address</button>
+
+        <select id="province" required>
+          <option value="">Province / Territory</option>
+          <option value="AB">Alberta</option>
+          <option value="BC">British Columbia</option>
+          <option value="MB">Manitoba</option>
+          <option value="NB">New Brunswick</option>
+          <option value="NL">Newfoundland and Labrador</option>
+          <option value="NT">Northwest Territories</option>
+          <option value="NS">Nova Scotia</option>
+          <option value="NU">Nunavut</option>
+          <option value="ON">Ontario</option>
+          <option value="PE">Prince Edward Island</option>
+          <option value="QC">Quebec</option>
+          <option value="SK">Saskatchewan</option>
+          <option value="YT">Yukon</option>
+        </select>
+        <span class="error-msg" id="provinceErr">Please select a province or territory.</span>
+
+        <input type="text" id="postalCode" placeholder="Postal Code" autocomplete="postal-code" required />
+        <span class="error-msg" id="postalErr">Postal code is required.</span>
+
+        <input type="tel" id="phone" placeholder="Phone Number (XXX-XXX-XXXX)" autocomplete="tel" required maxlength="12" />
+        <span class="error-msg" id="phoneErr">Please enter a valid phone number in XXX-XXX-XXXX format.</span>
+
+        <button type="submit" class="btn" id="submitBtn">Create Account</button>
+      </form>
+
+      <p class="card-footer">Already have an account? <a href="login.html">Sign In</a></p>
+    </div>
+
+  </div>
+
+  <script>
+    const password  = document.getElementById('password');
+    const confirm   = document.getElementById('confirm');
+    const pwMatch   = document.getElementById('pwMatch');
+    const pwSpecial = document.getElementById('pwSpecial');
+
+    const hasSpecial = v => /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?`~]/.test(v);
+
+    // Live password special-char check
+    password.addEventListener('input', () => {
+      if (password.value && !hasSpecial(password.value)) {
+        password.classList.add('error');
+        password.classList.remove('ok');
+        pwSpecial.style.display = 'block';
+      } else if (password.value && hasSpecial(password.value)) {
+        password.classList.remove('error');
+        password.classList.add('ok');
+        pwSpecial.style.display = 'none';
+      } else {
+        password.classList.remove('error', 'ok');
+        pwSpecial.style.display = 'none';
+      }
+      // re-check confirm match if already typed
+      if (confirm.value) confirm.dispatchEvent(new Event('input'));
+    });
+
+    // Live confirm check
+    confirm.addEventListener('input', () => {
+      if (confirm.value && confirm.value !== password.value) {
+        confirm.classList.add('error');
+        confirm.classList.remove('ok');
+        pwMatch.style.display = 'block';
+      } else if (confirm.value && confirm.value === password.value) {
+        confirm.classList.remove('error');
+        confirm.classList.add('ok');
+        pwMatch.style.display = 'none';
+      } else {
+        confirm.classList.remove('error', 'ok');
+        pwMatch.style.display = 'none';
+      }
+    });
+
+    // Live phone formatting: auto-insert dashes to produce XXX-XXX-XXXX
+    const phoneEl  = document.getElementById('phone');
+    const phoneErr = document.getElementById('phoneErr');
+
+    phoneEl.addEventListener('input', (e) => {
+      // Strip everything except digits
+      let digits = phoneEl.value.replace(/\D/g, '').slice(0, 10);
+      // Re-format with dashes
+      let formatted = digits;
+      if (digits.length > 6)      formatted = digits.slice(0,3) + '-' + digits.slice(3,6) + '-' + digits.slice(6);
+      else if (digits.length > 3) formatted = digits.slice(0,3) + '-' + digits.slice(3);
+      phoneEl.value = formatted;
+
+      // Live validation feedback
+      const valid = /^\d{3}-\d{3}-\d{4}$/.test(formatted);
+      if (phoneEl.value && !valid) {
+        phoneEl.classList.add('error');
+        phoneErr.style.display = 'block';
+      } else {
+        phoneEl.classList.remove('error');
+        phoneErr.style.display = 'none';
+      }
+    });
+
+    function toggleAddr2() {
+      const wrap = document.getElementById('addr2Wrap');
+      const btn  = document.getElementById('addAddr2Btn');
+      const open = wrap.style.display === 'none';
+      wrap.style.display = open ? '' : 'none';
+      btn.textContent    = open ? '− Remove second address' : '+ Add second address';
+      if (!open) document.getElementById('address2').value = '';
+    }
+
+    function handleSubmit(e) {
+      e.preventDefault();
+
+      // Basic validation
+      const fields = ['empId', 'fullName', 'email', 'password', 'confirm', 'address1', 'postalCode', 'phone', 'province'];
+      let valid = true;
+
+      fields.forEach(id => {
+        const el = document.getElementById(id);
+        if (!el.value.trim()) { el.classList.add('error'); valid = false; }
+        else { el.classList.remove('error'); }
+      });
+
+      // Show specific error messages for address fields
+      const a1 = document.getElementById('address1');
+      document.getElementById('addr1Err').style.display = !a1.value.trim() ? 'block' : 'none';
+      const prov = document.getElementById('province');
+      document.getElementById('provinceErr').style.display = !prov.value ? 'block' : 'none';
+
+      const pc = document.getElementById('postalCode');
+      document.getElementById('postalErr').style.display = !pc.value.trim() ? 'block' : 'none';
+
+      // Phone format validation
+      const phoneEl  = document.getElementById('phone');
+      const phoneErr = document.getElementById('phoneErr');
+      const validPhone = /^\d{3}-\d{3}-\d{4}$/.test(phoneEl.value);
+      if (!validPhone) {
+        phoneEl.classList.add('error');
+        phoneErr.style.display = 'block';
+        valid = false;
+      } else {
+        phoneEl.classList.remove('error');
+        phoneErr.style.display = 'none';
+      }
+
+      // Email format validation (User.submitForValidation)
+      const emailEl  = document.getElementById('email');
+      const emailVal = emailEl.value.trim();
+      const emailErr = document.getElementById('emailFmtErr');
+      if (!emailVal.includes('@') || !emailVal.split('@')[1]?.includes('.')) {
+        emailEl.classList.add('error');
+        emailErr.style.display = 'block';
+        valid = false;
+      } else {
+        emailEl.classList.remove('error');
+        emailErr.style.display = 'none';
+      }
+
+      // Password minimum length (User.submitForValidation)
+      if (password.value.length < 6) {
+        password.classList.add('error');
+        pwSpecial.style.display = 'block';
+        pwSpecial.textContent = 'Password must be at least 6 characters and contain a special character (!@#$%^&* …).';
+        valid = false;
+      } else if (!hasSpecial(password.value)) {
+        password.classList.add('error');
+        pwSpecial.style.display = 'block';
+        pwSpecial.textContent = 'Password must contain at least one special character (!@#$%^&* …).';
+        valid = false;
+      }
+
+      if (password.value !== confirm.value) {
+        confirm.classList.add('error');
+        pwMatch.style.display = 'block';
+        valid = false;
+      }
+
+      if (!valid) return;
+
+      const btn = document.getElementById('submitBtn');
+      btn.textContent = 'Creating account…';
+      btn.disabled = true;
+
+      // Save credentials to localStorage so login.html can validate them
+      const fullNameVal = document.getElementById('fullName').value.trim();
+      localStorage.setItem('reg_email',    document.getElementById('email').value.trim().toLowerCase());
+      localStorage.setItem('reg_password', password.value);
+      localStorage.setItem('reg_name',     fullNameVal);
+
+      // Simulate submission then redirect to login
+      setTimeout(() => {
+        window.location.href = 'login.html';
+      }, 1400);
+    }
+  </script>
+
+</body>
+</html>

@@ -1,0 +1,940 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Notifications</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: #f5f6fa;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── Navbar ── */
+    nav {
+      display: flex;
+      align-items: center;
+      padding: 0 28px;
+      height: 52px;
+      background: #fff;
+      border-bottom: 1px solid #eaedf3;
+      flex-shrink: 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      background: #1a2044;
+      border-radius: 8px;
+      margin-right: 28px;
+      flex-shrink: 0;
+    }
+    .nav-logo svg { width: 20px; height: 20px; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      flex: 1;
+      list-style: none;
+    }
+
+    .nav-links a {
+      color: #555e7a;
+      text-decoration: none;
+      font-size: 0.82rem;
+      padding: 6px 10px;
+      border-radius: 6px;
+      white-space: nowrap;
+      transition: color 0.15s, background 0.15s;
+    }
+
+    .nav-links a:hover { color: #1a2044; background: #f0f1f8; }
+    .nav-links a.active { color: #1a2044; font-weight: 600; background: #f0f1f8; }
+
+    .nav-user { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+
+    .avatar {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      background: #e8eaf6;
+      border: 1.5px solid #c5cae9;
+      display: flex; align-items: center; justify-content: center;
+      color: #5c6bc0;
+    }
+    .avatar svg { width: 16px; height: 16px; }
+    .user-name { font-size: 0.83rem; font-weight: 600; color: #1a2044; }
+
+    .menu-btn {
+      background: none; border: none; cursor: pointer;
+      padding: 4px; color: #8892aa;
+      display: flex; align-items: center;
+      border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .menu-btn:hover { color: #1a2044; background: #f0f1f8; }
+    .menu-btn svg { width: 18px; height: 18px; }
+    .menu-wrap { position: relative; }
+    .nav-dropdown { position: absolute; right: 0; top: calc(100% + 8px); background: #fff; border: 1px solid #eaedf3; border-radius: 10px; box-shadow: 0 8px 24px rgba(0,0,0,0.13); min-width: 160px; z-index: 200; display: none; overflow: hidden; }
+    .nav-dropdown.open { display: block; }
+    .nav-dropdown a { display: flex; align-items: center; gap: 9px; padding: 10px 16px; font-size: 0.84rem; color: #374151; text-decoration: none; cursor: pointer; transition: background 0.12s; }
+    .nav-dropdown a:hover { background: #f9fafb; }
+    .nav-dropdown a svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .dd-divider { height: 1px; background: #f0f2f7; margin: 4px 0; }
+    .dd-logout { color: #ef4444 !important; }
+    .dd-logout:hover { background: #fef2f2 !important; }
+
+    /* ── Page ── */
+    .page { flex: 1; padding: 32px 36px; }
+
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .page-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: #fff;
+      border-radius: 14px;
+      padding: 20px 24px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.07), 0 4px 16px rgba(0,0,0,0.04);
+      margin-bottom: 24px;
+      animation: fadeUp 0.4s cubic-bezier(0.22,1,0.36,1) both;
+    }
+
+    .page-header-left { display: flex; align-items: center; gap: 16px; }
+
+    .icon-box {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      background: #3b82f6;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.3);
+    }
+    .icon-box svg {
+      width: 24px; height: 24px;
+      stroke: #fff; fill: none;
+      stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+    }
+
+    .page-header-title h1 { font-size: 1.25rem; font-weight: 700; color: #1a2044; }
+    .page-header-title p  { font-size: 0.82rem; color: #8892aa; margin-top: 2px; }
+
+    .btn-create {
+      display: flex; align-items: center; gap: 8px;
+      padding: 11px 20px;
+      background: #3b82f6;
+      color: #fff;
+      border: none; border-radius: 10px;
+      font-size: 0.88rem; font-weight: 600;
+      cursor: pointer; white-space: nowrap;
+      transition: filter 0.15s, transform 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+      text-decoration: none;
+    }
+    .btn-create:hover { filter: brightness(1.08); transform: translateY(-1px); box-shadow: 0 6px 20px rgba(59,130,246,0.45); }
+    .btn-create:active { transform: translateY(0); }
+    .btn-create svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.5; stroke-linecap: round; }
+
+    .empty-state {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      padding: 80px 20px;
+      color: #b0b8cc;
+      animation: fadeUp 0.5s 0.1s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .empty-state svg { width: 56px; height: 56px; stroke: #d1d8e8; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; margin-bottom: 16px; }
+    .empty-state p    { font-size: 0.9rem; font-weight: 500; }
+    .empty-state span { font-size: 0.8rem; margin-top: 4px; color: #c8cfe0; }
+
+    .notif-list { display: flex; flex-direction: column; gap: 12px; }
+
+    .notif-card {
+      background: #fff;
+      border-radius: 12px;
+      padding: 16px 20px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 2px 10px rgba(0,0,0,0.04);
+      display: flex; align-items: flex-start; gap: 14px;
+      animation: fadeUp 0.35s cubic-bezier(0.22,1,0.36,1) both;
+    }
+    .notif-dot { width: 10px; height: 10px; border-radius: 50%; background: #3b82f6; flex-shrink: 0; margin-top: 5px; }
+    .notif-dot.red    { background: #ef4444; }
+    .notif-dot.orange { background: #f59e0b; }
+    .notif-card h3 { font-size: 0.9rem; font-weight: 600; color: #1a2044; }
+    .notif-card p  { font-size: 0.82rem; color: #8892aa; margin-top: 3px; line-height: 1.5; }
+    .notif-time    { font-size: 0.75rem; color: #b0b8cc; margin-left: auto; flex-shrink: 0; }
+    .notif-category {
+      font-size: 0.68rem; font-weight: 700; letter-spacing: 0.09em;
+      text-transform: uppercase; margin-bottom: 3px;
+    }
+    .notif-category.cat-schedule { color: #3b82f6; }
+    .notif-category.cat-urgent   { color: #ef4444; }
+    .notif-category.cat-reminder { color: #f59e0b; }
+    .notif-category.cat-general  { color: #6366f1; }
+
+    /* ══════════════════════════════
+       MODAL
+    ══════════════════════════════ */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,20,50,0.4);
+      backdrop-filter: blur(3px);
+      display: flex; align-items: center; justify-content: center;
+      z-index: 100;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+
+    .modal {
+      background: #fff;
+      border-radius: 14px;
+      width: 100%; max-width: 560px;
+      box-shadow: 0 24px 60px rgba(0,0,0,0.18);
+      transform: translateY(16px);
+      transition: transform 0.25s cubic-bezier(0.22,1,0.36,1);
+      overflow: hidden;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+
+    /* panels — only one visible at a time */
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    /* ── Panel: Create ── */
+    .modal-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 20px 24px 18px;
+    }
+    .modal-head h2 { font-size: 1.1rem; font-weight: 700; color: #111827; }
+    .modal-close {
+      background: none; border: none; cursor: pointer;
+      color: #9ca3af; font-size: 1.3rem; line-height: 1;
+      padding: 2px 6px; border-radius: 4px;
+      transition: color 0.15s, background 0.15s;
+    }
+    .modal-close:hover { color: #374151; background: #f3f4f6; }
+    .modal-divider { height: 1px; background: #e5e7eb; }
+    .modal-body { padding: 24px 24px 20px; }
+
+    .modal-body label {
+      display: block;
+      font-size: 0.82rem; font-weight: 600;
+      color: #374151; margin-bottom: 6px;
+    }
+
+    .modal-body input,
+    .modal-body textarea {
+      width: 100%;
+      padding: 10px 13px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      font-size: 0.9rem; color: #111827;
+      background: #fff; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      margin-bottom: 4px;
+      font-family: inherit;
+    }
+    .modal-body textarea { resize: vertical; min-height: 110px; line-height: 1.5; }
+    .modal-body input:focus,
+    .modal-body textarea:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+
+    .modal-body input.field-error,
+    .modal-body textarea.field-error { border-color: #f59e0b; box-shadow: 0 0 0 3px rgba(245,158,11,0.12); }
+
+    /* Tooltip error (message field) */
+    .field-wrap { position: relative; margin-bottom: 18px; }
+
+    .tooltip-error {
+      display: none;
+      position: absolute;
+      top: calc(100% + 6px);
+      left: 0;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+      padding: 8px 12px;
+      font-size: 0.82rem;
+      color: #374151;
+      white-space: nowrap;
+      z-index: 5;
+      align-items: center;
+      gap: 7px;
+    }
+    .tooltip-error.show { display: flex; }
+    .tooltip-error::before {
+      content: '';
+      position: absolute;
+      top: -5px; left: 14px;
+      width: 8px; height: 8px;
+      background: #fff;
+      border-left: 1px solid #e5e7eb;
+      border-top: 1px solid #e5e7eb;
+      transform: rotate(45deg);
+    }
+    .tooltip-icon {
+      width: 20px; height: 20px;
+      border-radius: 4px;
+      background: #f59e0b;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: #fff; font-weight: 700; font-size: 0.8rem;
+    }
+
+    /* Recipient tag field */
+    .recipient-wrap { position: relative; margin-bottom: 6px; }
+
+    .tag-field {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+      padding: 8px 36px 8px 10px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      min-height: 44px;
+      cursor: pointer;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      position: relative;
+      background: #fff;
+    }
+    .tag-field:focus-within,
+    .tag-field.focused { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.12); }
+    .tag-field.field-error { border-color: #ef4444; box-shadow: none; }
+
+    .tag-placeholder {
+      display: flex; align-items: center; gap: 7px;
+      color: #9ca3af; font-size: 0.88rem;
+    }
+    .tag-placeholder svg { width: 16px; height: 16px; stroke: #9ca3af; fill: none; stroke-width: 1.8; }
+
+    .tag {
+      display: flex; align-items: center; gap: 5px;
+      background: #eff6ff; border: 1px solid #bfdbfe;
+      color: #1d4ed8;
+      font-size: 0.82rem; font-weight: 500;
+      padding: 3px 8px 3px 10px;
+      border-radius: 6px; white-space: nowrap;
+    }
+    .tag-remove {
+      background: none; border: none; cursor: pointer;
+      color: #93c5fd; font-size: 1rem; line-height: 1;
+      padding: 0 1px; transition: color 0.15s;
+    }
+    .tag-remove:hover { color: #1d4ed8; }
+
+    .tag-field-arrow {
+      position: absolute; right: 10px; top: 50%;
+      transform: translateY(-50%);
+      color: #9ca3af; pointer-events: none; font-size: 0.8rem;
+    }
+
+    .recipient-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 4px); left: 0; right: 0;
+      background: #fff;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      z-index: 10;
+      max-height: 200px; overflow-y: auto;
+    }
+    .recipient-dropdown.open { display: block; }
+
+    .recipient-option {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 14px;
+      font-size: 0.88rem; color: #374151;
+      cursor: pointer;
+      transition: background 0.12s;
+      user-select: none;
+    }
+    .recipient-option:hover { background: #f0f6ff; }
+    .recipient-option.selected { color: #1d4ed8; background: #eff6ff; }
+    .opt-avatar {
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: #dbeafe; color: #2563eb;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.72rem; font-weight: 700; flex-shrink: 0;
+    }
+
+    /* Inline recipient error */
+    .recipient-error {
+      display: none;
+      font-size: 0.8rem;
+      color: #ef4444;
+      margin-top: 5px;
+      margin-bottom: 14px;
+    }
+    .recipient-error.show { display: block; }
+
+    /* Submit button (create panel) */
+    .btn-submit {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      width: 100%; padding: 13px;
+      border: none; border-radius: 8px;
+      background: #3b82f6; color: #fff;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer; margin-top: 8px;
+      transition: filter 0.15s, box-shadow 0.15s;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+    }
+    .btn-submit:hover { filter: brightness(1.07); }
+    .btn-submit svg { width: 17px; height: 17px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    /* ── Panel: Confirm ── */
+    .confirm-panel { padding: 36px 32px 28px; text-align: center; }
+
+    .confirm-icon {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: #eff6ff;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .confirm-icon svg { width: 28px; height: 28px; stroke: #3b82f6; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+    .confirm-panel h2 { font-size: 1.15rem; font-weight: 700; color: #111827; margin-bottom: 6px; }
+    .confirm-panel .confirm-sub { font-size: 0.88rem; color: #6b7280; margin-bottom: 24px; }
+
+    .preview-box {
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 10px;
+      padding: 16px 18px;
+      text-align: left;
+      margin-bottom: 24px;
+    }
+    .preview-row { margin-bottom: 12px; }
+    .preview-row:last-child { margin-bottom: 0; }
+    .preview-label { font-size: 0.75rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 3px; }
+    .preview-value { font-size: 0.88rem; color: #374151; line-height: 1.5; }
+    .preview-value.bold { font-weight: 600; color: #111827; }
+    .preview-bullets { list-style: none; }
+    .preview-bullets li::before { content: '• '; color: #3b82f6; font-weight: 700; }
+    .preview-bullets li { font-size: 0.88rem; color: #374151; line-height: 1.8; }
+
+    .confirm-actions { display: flex; gap: 12px; }
+
+    .btn-goback {
+      flex: 1; padding: 12px;
+      border: 1px solid #d1d5db;
+      border-radius: 8px;
+      background: #fff; color: #374151;
+      font-size: 0.92rem; font-weight: 600;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .btn-goback:hover { background: #f9fafb; }
+
+    .btn-yes {
+      flex: 1.4; padding: 12px;
+      border: none; border-radius: 8px;
+      background: #3b82f6; color: #fff;
+      font-size: 0.92rem; font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+      transition: filter 0.15s;
+    }
+    .btn-yes:hover { filter: brightness(1.07); }
+
+    /* ── Panel: Success ── */
+    .success-panel { padding: 36px 32px 28px; text-align: center; }
+
+    .success-icon {
+      width: 60px; height: 60px;
+      border-radius: 50%;
+      background: #dcfce7;
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 20px;
+    }
+    .success-icon svg { width: 28px; height: 28px; stroke: #16a34a; fill: none; stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+
+    .success-panel h2 { font-size: 1.2rem; font-weight: 700; color: #111827; margin-bottom: 8px; }
+    .success-panel .success-sub { font-size: 0.88rem; color: #6b7280; margin-bottom: 24px; line-height: 1.5; }
+    .success-sub strong { color: #111827; }
+
+    .btn-done {
+      display: block; width: 100%; padding: 13px;
+      border: none; border-radius: 8px;
+      background: #3b82f6; color: #fff;
+      font-size: 0.95rem; font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(59,130,246,0.35);
+      transition: filter 0.15s;
+    }
+    .btn-done:hover { filter: brightness(1.07); }
+  </style>
+</head>
+<body>
+
+  <!-- Navbar -->
+  <nav>
+    <ul class="nav-links">
+      <li><a href="home.html">Home</a></li>
+      <li><a href="schedule.html">Schedule</a></li>
+      <li><a href="availability.html">Availability</a></li>
+      <li><a href="timesheet.html">Timesheet</a></li>
+      <li><a href="checklist.html">Checklist</a></li>
+      <li><a href="notifications.html" class="active">Notifications</a></li>
+      <li><a href="incident.html">Incident Form</a></li>
+    </ul>
+    <div class="nav-user">
+      <div class="avatar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/>
+        </svg>
+      </div>
+      <span class="user-name" id="displayName">Julien Côté</span>
+      <div class="menu-wrap" id="menuWrap">
+        <button class="menu-btn" onclick="toggleMenu()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+            <line x1="4" y1="6" x2="20" y2="6"/>
+            <line x1="4" y1="12" x2="20" y2="12"/>
+            <line x1="4" y1="18" x2="20" y2="18"/>
+          </svg>
+        </button>
+        <div class="nav-dropdown" id="navDropdown">
+          <a class="dd-logout" onclick="logout()"><svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>Log Out</a>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Page -->
+  <div class="page">
+    <div class="page-header">
+      <div class="page-header-left">
+        <div class="icon-box">
+          <svg viewBox="0 0 24 24">
+            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
+            <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+          </svg>
+        </div>
+        <div class="page-header-title">
+          <h1>Notifications</h1>
+          <p>Manage and create your notifications</p>
+        </div>
+      </div>
+      <button class="btn-create" onclick="openModal()">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Create New Notification
+      </button>
+    </div>
+
+    <div class="notif-list" id="notifList">
+
+      <!-- Seed: Schedule -->
+      <div class="notif-card">
+        <div class="notif-dot blue" style="margin-top:7px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="notif-category cat-schedule">Schedule</div>
+          <h3>Schedule Published – Week of Mar 30</h3>
+          <p>The schedule for the week of March 30 has been published. Please log in to review your assigned shifts and confirm your availability.</p>
+          <p style="font-size:0.75rem;color:#b0b8cc;margin-top:6px;">Apr 1, 2026 · 9:14 AM &nbsp;·&nbsp; From: Julien Côté (Manager)</p>
+        </div>
+      </div>
+
+      <!-- Seed: Urgent -->
+      <div class="notif-card">
+        <div class="notif-dot red" style="margin-top:7px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="notif-category cat-urgent">Urgent</div>
+          <h3>URGENT: Early Close – Friday Apr 3</h3>
+          <p>Due to a private event, the restaurant will close at 7:00 PM this Friday (April 3). All evening staff should plan to leave by 7:30 PM. Please adjust your arrangements accordingly.</p>
+          <p style="font-size:0.75rem;color:#b0b8cc;margin-top:6px;">Apr 2, 2026 · 4:30 PM &nbsp;·&nbsp; From: Julien Côté (Manager)</p>
+        </div>
+      </div>
+
+      <!-- Seed: Reminder -->
+      <div class="notif-card">
+        <div class="notif-dot orange" style="margin-top:7px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="notif-category cat-reminder">Reminder</div>
+          <h3>Reminder: Submit Your Availability for Apr 7–13</h3>
+          <p>Please submit your availability for the week of April 7–13 by end of day Saturday. Log in to the Employee Portal and go to Availability to submit.</p>
+          <p style="font-size:0.75rem;color:#b0b8cc;margin-top:6px;">Apr 3, 2026 · 8:00 AM &nbsp;·&nbsp; From: Julien Côté (Manager)</p>
+        </div>
+      </div>
+
+      <!-- Seed: General -->
+      <div class="notif-card">
+        <div class="notif-dot blue" style="margin-top:7px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="notif-category cat-general">General</div>
+          <h3>Staff Meeting – Monday Apr 7 at 10:00 AM</h3>
+          <p>There will be a mandatory all-staff meeting on Monday April 7 at 10:00 AM in the dining room. Topics: spring menu updates, service procedures, and Q2 goals.</p>
+          <p style="font-size:0.75rem;color:#b0b8cc;margin-top:6px;">Mar 31, 2026 · 2:00 PM &nbsp;·&nbsp; From: Julien Côté (Manager)</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODAL ══ -->
+  <div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+    <div class="modal">
+
+      <!-- ── Panel 1: Create ── -->
+      <div class="panel active" id="panelCreate">
+        <div class="modal-head">
+          <h2>Create New Notification</h2>
+          <button class="modal-close" onclick="closeModal()">&times;</button>
+        </div>
+        <div class="modal-divider"></div>
+        <div class="modal-body">
+
+          <label for="notifTitle">Title</label>
+          <div class="field-wrap" style="margin-bottom:18px;">
+            <input id="notifTitle" type="text" placeholder="e.g. URGENT: Store Closure – Saturday May 25th" />
+          </div>
+
+          <label for="notifMsg">Message</label>
+          <div class="field-wrap">
+            <textarea id="notifMsg" placeholder="Enter notification message"></textarea>
+            <div class="tooltip-error" id="msgError">
+              <div class="tooltip-icon">!</div>
+              Please fill out this field.
+            </div>
+          </div>
+
+          <label>Recipients</label>
+          <div class="recipient-wrap">
+            <div class="tag-field" id="tagField" onclick="toggleDropdown()">
+              <div class="tag-placeholder" id="tagPlaceholder">
+                <svg viewBox="0 0 24 24"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4"/><path d="M16 11l2 2 4-4"/></svg>
+                Select employees…
+              </div>
+              <span class="tag-field-arrow">&#8964;</span>
+            </div>
+            <div class="recipient-dropdown" id="recipientDropdown"></div>
+          </div>
+          <div class="recipient-error" id="recipientError">Please select at least one employee.</div>
+
+          <button type="button" class="btn-submit" onclick="handleCreate()">
+            <svg viewBox="0 0 24 24"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            Create Notification
+          </button>
+
+        </div>
+      </div>
+
+      <!-- ── Panel 2: Confirm ── -->
+      <div class="panel" id="panelConfirm">
+        <div class="confirm-panel">
+          <div class="confirm-icon">
+            <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          </div>
+          <h2>Are you sure you want to send this notification?</h2>
+          <p class="confirm-sub" id="confirmSub">This will notify 0 employees immediately.</p>
+
+          <div class="preview-box">
+            <div class="preview-row">
+              <div class="preview-label">Title:</div>
+              <div class="preview-value bold" id="previewTitle"></div>
+            </div>
+            <div class="preview-row">
+              <div class="preview-label">Message:</div>
+              <div class="preview-value" id="previewMsg"></div>
+            </div>
+            <div class="preview-row">
+              <div class="preview-label" id="previewRecipLabel">Recipients (0):</div>
+              <ul class="preview-bullets" id="previewRecipList"></ul>
+            </div>
+          </div>
+
+          <div class="confirm-actions">
+            <button class="btn-goback" onclick="showPanel('panelCreate')">Go Back</button>
+            <button class="btn-yes" onclick="handleSend()">Yes, Send Notification</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Panel 3: Success ── -->
+      <div class="panel" id="panelSuccess">
+        <div class="success-panel">
+          <div class="success-icon">
+            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <h2>Notification Sent Successfully!</h2>
+          <p class="success-sub" id="successSub">Your notification has been sent.</p>
+
+          <div class="preview-box" style="margin-bottom:24px;">
+            <div class="preview-label" style="margin-bottom:8px;">Sent to:</div>
+            <ul class="preview-bullets" id="successRecipList"></ul>
+          </div>
+
+          <button class="btn-done" onclick="handleDone()">Done</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    if (!sessionStorage.getItem('loggedIn')) { window.location.replace('login.html'); }
+    // ── Display name ──
+    const stored = sessionStorage.getItem('userName');
+    if (stored) document.getElementById('displayName').textContent = stored;
+    function toggleMenu() { document.getElementById('navDropdown').classList.toggle('open'); }
+    function logout() { sessionStorage.clear(); window.location.replace('login.html'); }
+    document.addEventListener('click', e => {
+      const w = document.getElementById('menuWrap');
+      if (w && !w.contains(e.target)) document.getElementById('navDropdown').classList.remove('open');
+    });
+
+    // ── Staff roster ──
+    const STAFF = [
+      'Sarah Johnson', 'Michael Chen', 'Emily Davis',
+      'James Wilson',  'Aiko Tanaka',  'Lucas Martin',
+      'Priya Patel',   'Omar Hassan',  'Sophie Leclerc',
+    ];
+
+    let selectedRecipients = [];
+
+    // Build dropdown
+    const dropdown = document.getElementById('recipientDropdown');
+    STAFF.forEach(name => {
+      const initials = name.split(' ').map(w => w[0]).join('');
+      const el = document.createElement('div');
+      el.className = 'recipient-option';
+      el.dataset.name = name;
+      el.innerHTML = `<div class="opt-avatar">${initials}</div>${escHtml(name)}`;
+      el.addEventListener('click', e => { e.stopPropagation(); toggleRecipient(name); });
+      dropdown.appendChild(el);
+    });
+
+    function toggleDropdown() {
+      dropdown.classList.toggle('open');
+      document.getElementById('tagField').classList.toggle('focused', dropdown.classList.contains('open'));
+    }
+
+    document.addEventListener('click', e => {
+      const wrap = document.querySelector('.recipient-wrap');
+      if (wrap && !wrap.contains(e.target)) {
+        dropdown.classList.remove('open');
+        document.getElementById('tagField').classList.remove('focused');
+      }
+    });
+
+    function toggleRecipient(name) {
+      if (selectedRecipients.includes(name)) {
+        selectedRecipients = selectedRecipients.filter(n => n !== name);
+      } else {
+        selectedRecipients.push(name);
+      }
+      renderTags();
+      syncOptionStates();
+      // Clear recipient error when a selection is made
+      if (selectedRecipients.length > 0) {
+        document.getElementById('tagField').classList.remove('field-error');
+        document.getElementById('recipientError').classList.remove('show');
+      }
+    }
+
+    function renderTags() {
+      const field = document.getElementById('tagField');
+      field.querySelectorAll('.tag').forEach(t => t.remove());
+      const placeholder = document.getElementById('tagPlaceholder');
+      const arrow = field.querySelector('.tag-field-arrow');
+
+      if (selectedRecipients.length === 0) {
+        placeholder.style.display = 'flex';
+      } else {
+        placeholder.style.display = 'none';
+        selectedRecipients.forEach(name => {
+          const tag = document.createElement('div');
+          tag.className = 'tag';
+          tag.innerHTML = `${escHtml(name)}<button type="button" class="tag-remove" onclick="event.stopPropagation();removeRecipient('${name.replace(/'/g,"\\'")}')">×</button>`;
+          field.insertBefore(tag, arrow);
+        });
+      }
+    }
+
+    function removeRecipient(name) {
+      selectedRecipients = selectedRecipients.filter(n => n !== name);
+      renderTags();
+      syncOptionStates();
+    }
+
+    function syncOptionStates() {
+      dropdown.querySelectorAll('.recipient-option').forEach(opt => {
+        opt.classList.toggle('selected', selectedRecipients.includes(opt.dataset.name));
+      });
+    }
+
+    // ── Panel switching ──
+    function showPanel(id) {
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+    }
+
+    // ── Modal open/close ──
+    function openModal() {
+      document.getElementById('modalOverlay').classList.add('open');
+      showPanel('panelCreate');
+    }
+
+    function closeModal() {
+      document.getElementById('modalOverlay').classList.remove('open');
+      dropdown.classList.remove('open');
+    }
+
+    function handleOverlayClick(e) {
+      if (e.target === document.getElementById('modalOverlay')) closeModal();
+    }
+
+    // ── Validate & show confirm ──
+    function handleCreate() {
+      const title = document.getElementById('notifTitle').value.trim();
+      const msg   = document.getElementById('notifMsg').value.trim();
+      let valid   = true;
+
+      // Title: use browser native validation (just required check)
+      const titleEl = document.getElementById('notifTitle');
+      if (!title) {
+        titleEl.classList.add('field-error');
+        titleEl.focus();
+        valid = false;
+      } else {
+        titleEl.classList.remove('field-error');
+      }
+
+      // Message: custom tooltip
+      const msgEl    = document.getElementById('notifMsg');
+      const msgError = document.getElementById('msgError');
+      if (!msg) {
+        msgEl.classList.add('field-error');
+        msgError.classList.add('show');
+        if (title) msgEl.focus();
+        valid = false;
+      } else {
+        msgEl.classList.remove('field-error');
+        msgError.classList.remove('show');
+      }
+
+      // Recipients: inline error
+      const recipError = document.getElementById('recipientError');
+      const tagField   = document.getElementById('tagField');
+      if (selectedRecipients.length === 0) {
+        tagField.classList.add('field-error');
+        recipError.classList.add('show');
+        valid = false;
+      } else {
+        tagField.classList.remove('field-error');
+        recipError.classList.remove('show');
+      }
+
+      if (!valid) return;
+
+      // Populate confirm panel
+      const count = selectedRecipients.length;
+      document.getElementById('confirmSub').textContent     = `This will notify ${count} employee${count !== 1 ? 's' : ''} immediately.`;
+      document.getElementById('previewTitle').textContent   = title;
+      document.getElementById('previewMsg').textContent     = msg;
+      document.getElementById('previewRecipLabel').textContent = `Recipients (${count}):`;
+
+      const list = document.getElementById('previewRecipList');
+      list.innerHTML = '';
+      selectedRecipients.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        list.appendChild(li);
+      });
+
+      showPanel('panelConfirm');
+    }
+
+    // ── Send & show success ──
+    function handleSend() {
+      const title = document.getElementById('notifTitle').value.trim();
+      const msg   = document.getElementById('notifMsg').value.trim();
+      const count = selectedRecipients.length;
+
+      // Populate success panel
+      const sub = document.getElementById('successSub');
+      sub.innerHTML = `Your notification <strong>"${escHtml(title)}"</strong> has been sent to <strong>${count} employee${count !== 1 ? 's' : ''}</strong>`;
+
+      const sList = document.getElementById('successRecipList');
+      sList.innerHTML = '';
+      selectedRecipients.forEach(name => {
+        const li = document.createElement('li');
+        li.textContent = name;
+        sList.appendChild(li);
+      });
+
+      // Add card to the notification list (in background)
+      addNotifCard(title, msg, [...selectedRecipients]);
+
+      showPanel('panelSuccess');
+    }
+
+    // ── Done ──
+    function handleDone() {
+      closeModal();
+      // Reset form
+      document.getElementById('notifTitle').value = '';
+      document.getElementById('notifMsg').value   = '';
+      selectedRecipients = [];
+      renderTags();
+      syncOptionStates();
+      // Clear any errors
+      document.getElementById('notifTitle').classList.remove('field-error');
+      document.getElementById('notifMsg').classList.remove('field-error');
+      document.getElementById('msgError').classList.remove('show');
+      document.getElementById('tagField').classList.remove('field-error');
+      document.getElementById('recipientError').classList.remove('show');
+    }
+
+    // ── Add card to list ──
+    function addNotifCard(title, msg, recipients) {
+      const now  = new Date();
+      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const stored = sessionStorage.getItem('userName') || 'Manager';
+
+      const card = document.createElement('div');
+      card.className = 'notif-card';
+      card.innerHTML = `
+        <div class="notif-dot blue" style="margin-top:7px;"></div>
+        <div style="flex:1;min-width:0;">
+          <div class="notif-category cat-general">General</div>
+          <h3>${escHtml(title)}</h3>
+          <p>${escHtml(msg)}</p>
+          <p style="font-size:0.75rem;color:#b0b8cc;margin-top:6px;">Just now · ${time} &nbsp;·&nbsp; From: ${escHtml(stored)} (Manager)</p>
+        </div>
+      `;
+      document.getElementById('notifList').prepend(card);
+    }
+
+    // ── Hide message tooltip on typing ──
+    document.getElementById('notifMsg').addEventListener('input', () => {
+      if (document.getElementById('notifMsg').value.trim()) {
+        document.getElementById('notifMsg').classList.remove('field-error');
+        document.getElementById('msgError').classList.remove('show');
+      }
+    });
+
+    document.getElementById('notifTitle').addEventListener('input', () => {
+      if (document.getElementById('notifTitle').value.trim())
+        document.getElementById('notifTitle').classList.remove('field-error');
+    });
+
+    function escHtml(s) {
+      return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+  </script>
+
+</body>
+</html>
